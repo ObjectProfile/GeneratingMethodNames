@@ -1,0 +1,62 @@
+[2018-08-06 19:09:47.451628]
+Loading the data
+
+[2018-08-06 19:09:50.941414]
+Building input and output languages
+
+[2018-08-06 19:10:36.144222]
+Number of unique input tokens: 5957
+Number of unique output tokens: 5138
+
+[2018-08-06 19:10:37.806092]
+Serializing input and output languages to pickles
+
+[2018-08-06 19:10:44.895096]
+Splitting data into train, validation, and test sets
+
+[2018-08-06 19:10:47.158065]
+Train size: 54417
+Validation size: 7773
+Test size: 15547
+
+[2018-08-06 19:10:48.656782]
+Serializing train, validation, and test sets to pickles
+
+[2018-08-06 19:11:02.170459]
+Converting data entries to tensors
+
+[2018-08-06 19:11:09.158364]
+Building the model
+
+[2018-08-06 19:11:10.357253]
+Seq2Seq(
+  (encoder): EncoderRNN(
+    (embedding): Embedding(5957, 256)
+    (gru): GRU(256, 256)
+  )
+  (decoder): AttnDecoderRNN(
+    (embedding): Embedding(5138, 256)
+    (attn): Linear(in_features=512, out_features=51, bias=True)
+    (attn_combine): Linear(in_features=512, out_features=256, bias=True)
+    (dropout): Dropout(p=0.1)
+    (gru): GRU(256, 256)
+    (out): Linear(in_features=256, out_features=5138, bias=True)
+  )
+  (criterion): NLLLoss()
+)
+
+[2018-08-06 19:11:11.775868]
+Initializing evaluators
+
+[2018-08-06 19:11:12.979390]
+Training the model
+
+[2018-08-07 11:36:40.958037]
+Saving the model
+
+[2018-08-07 11:36:42.604000]
+Evaluating on test set
+
+[2018-08-07 11:42:34.876177]
+Done
+
