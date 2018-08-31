@@ -1,8 +1,8 @@
-import constants
-from models.seq2seq import Seq2Seq
-from preprocessing import read_langs, train_validation_test_split, TensorBuilder
-from evaluator import Evaluator
-from logger import DefaultLogger, DriveLogger
+from train import constants
+from train.seq2seq import Seq2Seq
+from train.preprocessing import read_langs, train_validation_test_split, TensorBuilder
+from train.evaluator import Evaluator
+from train.logger import DefaultLogger, DriveLogger
 
 import os
 import time
@@ -13,6 +13,8 @@ import numpy as np
 import pandas as pd
 
 import torch
+
+__all__ = [ 'Seq2Seq' ]
 
 
 if __name__ == '__main__':

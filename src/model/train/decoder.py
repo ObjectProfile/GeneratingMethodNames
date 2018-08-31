@@ -1,4 +1,4 @@
-from constants import MAX_LENGTH
+from train.constants import MAX_LENGTH
 
 import torch
 import torch.nn as nn

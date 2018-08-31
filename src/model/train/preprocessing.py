@@ -1,4 +1,4 @@
-from constants import EOS_TOKEN, MAX_LENGTH, DEVICE
+from train.constants import EOS_TOKEN, MAX_LENGTH, DEVICE
 
 import numpy as np
 

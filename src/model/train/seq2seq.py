@@ -1,7 +1,7 @@
-import constants
-from models.encoder import EncoderRNN
-from models.decoder import AttnDecoderRNN
-from util import time_str
+from train import constants
+from train.encoder import EncoderRNN
+from train.decoder import AttnDecoderRNN
+from train.util import time_str
 
 import os
 import time

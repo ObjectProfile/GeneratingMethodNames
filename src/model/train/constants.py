@@ -2,9 +2,9 @@ WRITE_LOGS_TO_GOOGLE_DRIVE = True
 DEVICE = 'cpu'
 
 DATA_DIR = '../../data'
-LOGS_DIR = 'logs'
+LOGS_DIR = '../../logs'
 IMG_DIR = '../../img'
-RESULTS_DIR = 'results'
+MODELS_DIR = '../../models'
 
 SOS_TOKEN = 0
 EOS_TOKEN = 1

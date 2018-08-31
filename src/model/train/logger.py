@@ -1,8 +1,8 @@
-import constants
+from train import constants
 
 # TODO: Move elsewhere
-from metrics import confusion_dataframe
-from visualizations import plot_confusion_dataframe, plot_history, COLORS
+from train.metrics import confusion_dataframe
+from train.visualizations import plot_confusion_dataframe, plot_history, COLORS
 
 import os
 import datetime
