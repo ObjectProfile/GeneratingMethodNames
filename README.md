@@ -7,7 +7,14 @@ This repository contains all the source code related to the research project of 
 * **data/** - empty folder where you should put the dataset of Pharo methods (follow the instructions to download or construct this dataset). This folder will also store additional files generated during training, such as train/validation/test pairs and vocabularies.
 * **img/** - different visualizations generated during training.
 * **models/** - empty folder where you can put the pretrained model (follow the instructions to download it). If you choose to train your own model, it will also be stored in this folder.
+* **logs/** - a folder where both textual and CSV logs are written during training. It contains the log files from the last time the model was trained. They are here just for you to see the structure of these log files. If you decide to train your own models, all the log files in this folder will be overwritten.
 * **src/** - source code of this project.
+    * **src/datacollect/** - code and instructions for collecting and preprocessing the dataset of Pharo methods.
+    * **src/model/** - Python code for training the model on the collected dataset and deploying it as a web service
+        * **src/model/train/** - code for training the model
+        * **src/model/deploy/** - code for deploying the trained model as a web service
+            * **src/model/deploy/server/** - server side (Flask service that listens to HTTP requests)
+            * **src/model/deploy/client/** - client side (Pharo app that sends requests with the source code to the server and receives method name as the response)
 
 ## Reproducing the results
 
