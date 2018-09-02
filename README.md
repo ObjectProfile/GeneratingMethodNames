@@ -15,3 +15,17 @@ The following steps require the file `methods_tokenized.csv` in `data/` folder. 
 Training takes a lot of time. Every couple of iterations (1/100 of the total number of iterations) the intermediary results are reported and stored into log files. By default these logs are written onto your disk. If you choose to keep it this way, you can skip the rest of this step and jump right to step 3.
 
 Alternatively, you can send the logs to your Google Drive. This way you can train the model on a remote machine and receive live updates, which you can view anywhere, even on your smartphone.
+
+### Step 3. Train the model 
+
+In order to train the model you should go to `src/model/` folder
+
+```bash
+cd src/model/
+```
+
+Run the following command to start the training
+```bash
+python model.py --train
+```
+100,000 iterations of training take around 10 hours on Intel Core i5 CPU. So be patient or get yourself a GPU.
