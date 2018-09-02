@@ -1,4 +1,4 @@
-WRITE_LOGS_TO_GOOGLE_DRIVE = True
+WRITE_LOGS_TO_GOOGLE_DRIVE = False
 DEVICE = 'cpu'
 
 DATA_DIR = '../../data'

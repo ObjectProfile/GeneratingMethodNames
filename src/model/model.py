@@ -1,4 +1,5 @@
 from deploy.server import load_trained_model
+from train import start_training
 import argparse
 
 
@@ -12,7 +13,8 @@ def parse_args():
 
 
 def run_train():
-    print('Training takes too much time. For now it\'s disabled')
+    """WARNING: Time consuming operation. Takes around 6 hours"""
+    start_training()
 
 
 def run_deploy_server():

@@ -3,6 +3,7 @@ from train import constants
 # TODO: Move elsewhere
 from train.metrics import confusion_dataframe
 from train.visualizations import plot_confusion_dataframe, plot_history, COLORS
+from train.exceptions import DriveSecretsNotFound
 
 import os
 import datetime
@@ -11,6 +12,7 @@ from io import StringIO
 
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
+from pydrive.settings import InvalidConfigError
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -202,9 +204,12 @@ class DriveLogger(DefaultLogger):
 
 
     def __login(self):
-        self.__gauth = GoogleAuth()
-        self.__gauth.LocalWebserverAuth()        # Creates local webserver and auto handles authentication
-        self.__drive = GoogleDrive(self.__gauth) # Create GoogleDrive instance with authenticated GoogleAuth instance
+        try:
+            self.__gauth = GoogleAuth()
+            self.__gauth.LocalWebserverAuth()        # Creates local webserver and auto handles authentication
+            self.__drive = GoogleDrive(self.__gauth) # Create GoogleDrive instance with authenticated GoogleAuth instance
+        except InvalidConfigError:
+            raise DriveSecretsNotFound
 
 
     def __find_folders(self, fldname):

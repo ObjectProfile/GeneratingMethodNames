@@ -14,11 +14,10 @@ import pandas as pd
 
 import torch
 
-__all__ = [ 'Seq2Seq' ]
+__all__ = [ 'Seq2Seq', 'start_training' ]
 
 
-if __name__ == '__main__':
-
+def start_training():
     logger = DriveLogger('NameGen') if constants.WRITE_LOGS_TO_GOOGLE_DRIVE else DefaultLogger()
 
     try:
@@ -95,13 +94,13 @@ if __name__ == '__main__':
             model.trainIters(train_pairs, iters_completed, constants.NUM_ITER, logger, evaluator, constants.LOG_EVERY)
 
             logger.log('Saving the model')
-            torch.save(model.state_dict(), os.path.join(constants.RESULTS_DIR, 'trained_model.pt'))
+            torch.save(model.state_dict(), os.path.join(constants.MODELS_DIR, 'trained_model.pt'))
 
             successful = True
 
             logger.log('Evaluating on test set')
             names = test_set_evaluator.evaluate(model)
-            logger.save_dataframe(names, os.path.join(constants.RESULTS_DIR, 'test_names.csv'))
+            logger.save_dataframe(names, os.path.join(constants.LOGS_DIR, 'test_names.csv'))
 
             logger.log('Done')
 
@@ -135,7 +134,7 @@ if __name__ == '__main__':
             
                     try:
                         logger.log('Loading the last trained model')
-                        model.load_state_dict(torch.load(os.path.join(constants.RESULTS_DIR, 'trained_model.pt')))
+                        model.load_state_dict(torch.load(os.path.join(constants.MODELS_DIR, 'trained_model.pt')))
                     except Exception as e:
                         logger.log("Error: " + str(e))
                         logger.log("Can't load the last trained model. Starting from scratch")

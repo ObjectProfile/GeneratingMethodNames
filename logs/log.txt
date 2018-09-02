@@ -1,34 +1,34 @@
-[2018-08-06 19:09:47.451628]
+[2018-09-02 16:47:16.640778]
 Loading the data
 
-[2018-08-06 19:09:50.941414]
+[2018-09-02 16:47:17.412400]
 Building input and output languages
 
-[2018-08-06 19:10:36.144222]
+[2018-09-02 16:48:10.099467]
 Number of unique input tokens: 5957
 Number of unique output tokens: 5138
 
-[2018-08-06 19:10:37.806092]
+[2018-09-02 16:48:10.107583]
 Serializing input and output languages to pickles
 
-[2018-08-06 19:10:44.895096]
+[2018-09-02 16:48:10.138652]
 Splitting data into train, validation, and test sets
 
-[2018-08-06 19:10:47.158065]
+[2018-09-02 16:48:10.461669]
 Train size: 54417
 Validation size: 7773
 Test size: 15547
 
-[2018-08-06 19:10:48.656782]
+[2018-09-02 16:48:10.462047]
 Serializing train, validation, and test sets to pickles
 
-[2018-08-06 19:11:02.170459]
+[2018-09-02 16:48:11.443448]
 Converting data entries to tensors
 
-[2018-08-06 19:11:09.158364]
+[2018-09-02 16:48:19.485148]
 Building the model
 
-[2018-08-06 19:11:10.357253]
+[2018-09-02 16:48:19.580253]
 Seq2Seq(
   (encoder): EncoderRNN(
     (embedding): Embedding(5957, 256)
@@ -45,18 +45,9 @@ Seq2Seq(
   (criterion): NLLLoss()
 )
 
-[2018-08-06 19:11:11.775868]
+[2018-09-02 16:48:19.580624]
 Initializing evaluators
 
-[2018-08-06 19:11:12.979390]
+[2018-09-02 16:48:19.581644]
 Training the model
-
-[2018-08-07 11:36:40.958037]
-Saving the model
-
-[2018-08-07 11:36:42.604000]
-Evaluating on test set
-
-[2018-08-07 11:42:34.876177]
-Done
 

@@ -106,7 +106,7 @@ class Seq2Seq(nn.Module):
             if iter % log_every == 0:
                 train_time_elapsed = time.time() - start_train_time
 
-                torch.save(self.state_dict(), 'results/trained_model.pt')
+                torch.save(self.state_dict(), os.path.join(constants.MODELS_DIR, 'trained_model.pt'))
 
                 with open(os.path.join(constants.LOGS_DIR, 'iters_completed.txt'), 'w') as f:
                     f.write(str(iter))
@@ -146,7 +146,7 @@ class Seq2Seq(nn.Module):
                     avg_f1_history,
                     num_unique_names_history)
 
-                logger.save_dataframe(names, os.path.join(constants.RESULTS_DIR, 'valid_names.csv'))
+                logger.save_dataframe(names, os.path.join(constants.LOGS_DIR, 'valid_names.csv'))
 
                 histories = pd.DataFrame(OrderedDict([
                     ('Loss', avg_loss_history),
@@ -156,7 +156,7 @@ class Seq2Seq(nn.Module):
                     ('num_names', num_unique_names_history)
                 ]))
 
-                logger.save_dataframe(histories, os.path.join(constants.RESULTS_DIR, 'histories.csv'))
+                logger.save_dataframe(histories, os.path.join(constants.LOGS_DIR, 'histories.csv'))
 
                 # Reseting counters
                 total_loss = 0
