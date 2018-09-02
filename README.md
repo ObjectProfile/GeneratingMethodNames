@@ -4,10 +4,10 @@ This repository contains all the source code related to the research project of 
 
 ## Project structure
 
-* [data/](data/) - empty folder where you should put the dataset of Pharo methods (follow the instructions to download or construct this dataset). This folder will also store additional files generated during training, such as train/validation/test pairs and vocabularies.
+* [data/](data/) - empty folder where you should put the dataset of Pharo methods (follow the [instructions](#step-1-get-the-data) to download or construct this dataset). This folder will also store additional files generated during training, such as train/validation/test pairs and vocabularies.
 * [img/](img/) - different visualizations generated during training.
-* [models/](models/) - empty folder where you can put the pretrained model (follow the instructions to download it). If you choose to train your own model, it will also be stored in this folder.
-* [logs/](logs/) - a folder where both textual and CSV logs are written during training. It contains the log files from the last time the model was trained. They are here just for you to see the structure of these log files. If you decide to train your own models, all the log files in this folder will be overwritten.
+* [models/](models/) - empty folder where you can put the pretrained model (follow the instructions to download it). If you choose to [train your own model](#step-3-train-the-model), it will also be stored in this folder.
+* [logs/](logs/) - a folder where both textual and CSV logs are written during training. It contains the log files from the last time the model was trained. They are here just for you to see the structure of these log files. If you decide to train your own model, all the log files in this folder will be overwritten.
 * [src/](src/) - source code of this project.
     * [src/datacollect/](src/datacollect/) - code and instructions for collecting and preprocessing the dataset of Pharo methods.
     * [src/model/](src/model/) - Python code for training the model on the collected dataset and deploying it as a web service
