@@ -1,1 +1,3 @@
-# PredictingMethodNames
+# Generation of method names
+
+This repository contains all the source code related to the research project of [Oleksandr Zaytsev](@olekscode) performed under the supervision of [Alexandre Bergel](@bergel) at the [University of Chile](http://www.uchile.cl/). We apply the techniques of neural machine translation to generate method names based on source code of [Pharo](https://pharo.org/). In this setting source code becomes the source language (from which we translate) and English, in which the words composing the method names are written, becomes the target language (to which the source code is translated). Therefore we are dealing with the problem of translating source code of Pharo into English. We argue that in a way this problem is equivalent to the translation between human languages, such as English and French.
