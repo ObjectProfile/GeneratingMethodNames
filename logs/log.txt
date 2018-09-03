@@ -51,3 +51,12 @@ Initializing evaluators
 [2018-09-02 16:48:19.581644]
 Training the model
 
+[2018-09-03 05:24:07.296472]
+Saving the model
+
+[2018-09-03 05:24:07.406596]
+Evaluating on test set
+
+[2018-09-03 05:29:47.659947]
+Done
+

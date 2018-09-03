@@ -1,4 +1,3 @@
-from deploy.server import load_trained_model
 from train import start_training
 import argparse
 
@@ -18,8 +17,7 @@ def run_train():
 
 
 def run_deploy_server():
-    model = load_trained_model()
-    print(model)
+    pass
 
 
 if __name__ == '__main__':
