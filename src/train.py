@@ -1,10 +1,9 @@
-from train import constants
-from train.seq2seq import Seq2Seq
-from train.preprocessing import read_langs, train_validation_test_split, TensorBuilder
-from train.evaluator import Evaluator
-from train.logger import DefaultLogger, DriveLogger
+import constants
+from seq2seq import Seq2Seq
+from preprocessing import read_langs, train_validation_test_split, TensorBuilder
+from evaluator import Evaluator
+from logger import DefaultLogger, DriveLogger
 
-import os
 import time
 import math
 from collections import OrderedDict
@@ -14,8 +13,6 @@ import pandas as pd
 
 import torch
 
-__all__ = [ 'Seq2Seq', 'start_training' ]
-
 
 def start_training():
     logger = DriveLogger('NameGen') if constants.WRITE_LOGS_TO_GOOGLE_DRIVE else DefaultLogger()
@@ -24,7 +21,7 @@ def start_training():
         total_time_start = time.time()
 
         logger.log('Loading the data')
-        methods = pd.read_csv(os.path.join(constants.DATA_DIR, 'methods_tokenized.csv'), delimiter='\t')
+        methods = pd.read_csv(constants.DATA_DIR / 'methods_tokenized.csv', delimiter='\t')
 
         logger.log('Building input and output languages')
         input_lang, output_lang, pairs = read_langs('source', 'name', methods)
@@ -37,8 +34,8 @@ def start_training():
 
         logger.log('Serializing input and output languages to pickles')
 
-        logger.save_pickle(input_lang, os.path.join(constants.DATA_DIR, 'input_lang.pkl'))
-        logger.save_pickle(output_lang, os.path.join(constants.DATA_DIR, 'output_lang.pkl'))
+        logger.save_pickle(input_lang, constants.LANGS_DIR / 'input_lang.pkl')
+        logger.save_pickle(output_lang, constants.LANGS_DIR / 'output_lang.pkl')
 
         logger.log('Splitting data into train, validation, and test sets')
         train_pairs, valid_pairs, test_pairs = train_validation_test_split(
@@ -54,9 +51,9 @@ def start_training():
 
         logger.log('Serializing train, validation, and test sets to pickles')
 
-        logger.save_pickle(train_pairs, os.path.join(constants.DATA_DIR, 'train_pairs.pkl'))
-        logger.save_pickle(valid_pairs, os.path.join(constants.DATA_DIR, 'valid_pairs.pkl'))
-        logger.save_pickle(test_pairs, os.path.join(constants.DATA_DIR, 'test_pairs.pkl'))
+        logger.save_pickle(train_pairs, constants.TRAIN_VALID_TEST_DIR / 'train_pairs.pkl')
+        logger.save_pickle(valid_pairs, constants.TRAIN_VALID_TEST_DIR / 'valid_pairs.pkl')
+        logger.save_pickle(test_pairs, constants.TRAIN_VALID_TEST_DIR / 'test_pairs.pkl')
 
         logger.log('Converting data entries to tensors')
         tensor_builder = TensorBuilder(input_lang, output_lang)
@@ -94,13 +91,13 @@ def start_training():
             model.trainIters(train_pairs, iters_completed, constants.NUM_ITER, logger, evaluator, constants.LOG_EVERY)
 
             logger.log('Saving the model')
-            torch.save(model.state_dict(), os.path.join(constants.MODELS_DIR, 'trained_model.pt'))
+            torch.save(model.state_dict(), str(constants.MODELS_DIR / 'trained_model.pt'))
 
             successful = True
 
             logger.log('Evaluating on test set')
             names = test_set_evaluator.evaluate(model)
-            logger.save_dataframe(names, os.path.join(constants.LOGS_DIR, 'test_names.csv'))
+            logger.save_dataframe(names, constants.RESULTS_DIR / 'test_names.csv')
 
             logger.log('Done')
 
@@ -121,7 +118,7 @@ def start_training():
                     logger.log("Error during training: " + str(e))
 
                     try:
-                        with open(os.path.join(constants.LOGS_DIR, 'iters_completed.txt'), 'r') as f:
+                        with open(str(constants.STATE_DIR / 'iters_completed.txt'), 'r') as f:
                             iters_completed = int(f.read())
                     except Exception as e:
                         logger.log("Error: " + str(e))
@@ -131,10 +128,10 @@ def start_training():
                         iters_completed + 1,
                         constants.NUM_ITER - iters_completed,
                         (constants.NUM_ITER - iters_completed) / constants.NUM_ITER * 100))
-            
+
                     try:
                         logger.log('Loading the last trained model')
-                        model.load_state_dict(torch.load(os.path.join(constants.MODELS_DIR, 'trained_model.pt')))
+                        model.load_state_dict(torch.load(str(constants.MODELS_DIR / 'trained_model.pt')))
                     except Exception as e:
                         logger.log("Error: " + str(e))
                         logger.log("Can't load the last trained model. Starting from scratch")
@@ -152,6 +149,3 @@ def start_training():
                 except Exception as e:
                     logger = DefaultLogger()
                     print("Switched to default logger")
-
-
-    

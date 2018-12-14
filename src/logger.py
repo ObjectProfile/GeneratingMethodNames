@@ -1,9 +1,9 @@
-from train import constants
+import constants
 
 # TODO: Move elsewhere
-from train.metrics import confusion_dataframe
-from train.visualizations import plot_confusion_dataframe, plot_history, COLORS
-from train.exceptions import DriveSecretsNotFound
+from metrics import confusion_dataframe
+from visualizations import plot_confusion_dataframe, plot_history, COLORS
+from exceptions import DriveSecretsNotFound
 
 import os
 import datetime
@@ -26,38 +26,38 @@ class DefaultLogger:
     def write_log(self, string, fname, append):
         self.remove_old_file_on_first_log(fname)
 
-        with open(fname, 'a') as f:
+        with open(str(fname), 'a') as f:
             f.write(string)
 
-    
-    def log(self, string, fname=os.path.join(constants.LOGS_DIR, 'log.txt'), append=True):
+
+    def log(self, string, fname=constants.LOGS_DIR / 'log.txt', append=True):
         string = '[{}]\n{}\n\n'.format(datetime.datetime.now(), string)
         self.write_log(string, fname, append)
 
-    
+
     def save_dataframe(self, df, fname):
         df.to_csv(fname, sep='\t')
-        self.on_file_saved(fname)
+        self.on_file_saved(str(fname))
 
 
     def save_image(self, fig, fname, update=True):
         fig.savefig(fname)
         plt.close(fig)
-        self.on_file_saved(fname)
+        self.on_file_saved(str(fname))
 
 
     def save_pickle(self, obj, fname):
-        with open(fname, 'wb') as f:
+        with open(str(fname), 'wb') as f:
             pickle.dump(obj, f)
 
-        self.on_file_saved(fname)
+        self.on_file_saved(str(fname))
 
 
     def on_file_saved(self, fname):
         """DefaultLogger foes nothing, DriveLogger uploads file to Drive"""
         pass
 
-    
+
     def write_training_log(self, log_dict, fname):
         log_template = ": {}\n".join(log_dict.keys()) + ": {}"
         log_string = log_template.format(*log_dict.values())
@@ -72,7 +72,7 @@ class DefaultLogger:
             title = 'Average Loss',
             ylabel = 'Loss')
 
-        self.save_image(fig, os.path.join(constants.IMG_DIR, 'loss.png'))
+        self.save_image(fig, str(constants.IMG_DIR / 'loss.png'))
 
         fig = plot_history(
             history = bleu_history,
@@ -80,7 +80,7 @@ class DefaultLogger:
             title = 'Average BLEU',
             ylabel = 'BLEU')
 
-        self.save_image(fig, os.path.join(constants.IMG_DIR, 'bleu.png'))
+        self.save_image(fig, str(constants.IMG_DIR / 'bleu.png'))
 
         fig = plot_history(
             history = rouge_history,
@@ -88,7 +88,7 @@ class DefaultLogger:
             title = 'Average ROUGE',
             ylabel = 'ROUGE')
 
-        self.save_image(fig, os.path.join(constants.IMG_DIR, 'rouge.png'))
+        self.save_image(fig, str(constants.IMG_DIR / 'rouge.png'))
 
         fig = plot_history(
             history = f1_history,
@@ -96,7 +96,7 @@ class DefaultLogger:
             title = 'Average F1 score',
             ylabel = 'F1 score')
 
-        self.save_image(fig, os.path.join(constants.IMG_DIR, 'f1.png'))
+        self.save_image(fig, str(constants.IMG_DIR / 'f1.png'))
 
         # TODO: Move to visualizations.py
         fig, ax = plt.subplots()
@@ -108,7 +108,7 @@ class DefaultLogger:
         ax.set_xlabel('Iteration')
         ax.set_ylabel('')
 
-        self.save_image(fig, os.path.join(constants.IMG_DIR, 'bleu_rouge_f1.png'))
+        self.save_image(fig, str(constants.IMG_DIR / 'bleu_rouge_f1.png'))
 
         fig = plot_history(
             history = num_unique_names_history,
@@ -116,7 +116,7 @@ class DefaultLogger:
             title = 'Number of unique names',
             ylabel = '# names')
 
-        self.save_image(fig, os.path.join(constants.IMG_DIR, 'num_names.png'))
+        self.save_image(fig, str(constants.IMG_DIR / 'num_names.png'))
 
 
     def remove_old_file_on_first_log(self, fname):
@@ -126,7 +126,7 @@ class DefaultLogger:
 
             try:
                 # Remove if exists
-                os.remove(fname)
+                os.remove(str(fname))
             except OSError:
                 # Otherwise do nothing
                 pass
@@ -137,7 +137,7 @@ class DriveLogger(DefaultLogger):
 
     def __init__(self, folder_name):
         super(DriveLogger, self).__init__()
-        
+
         self.__login()
         self.__folder = self.__find_folders(folder_name)[0]
 
@@ -184,7 +184,7 @@ class DriveLogger(DefaultLogger):
         """
 
         super(DriveLogger, self).write_log(string, fname, append)
-        fname = os.path.basename(fname)
+        fname = os.path.basename(str(fname))
 
         if fname not in self.__files.keys():
             self.__files[fname] = self.__create_file(fname)
@@ -227,11 +227,11 @@ class DriveLogger(DefaultLogger):
 
         return self.__drive.CreateFile(param)
 
-    
+
     def __upload_file(self, fname, update=True):
         if fname not in self.__files.keys() or not update:
             self.__files[fname] = self.__create_file(
-                os.path.basename(fname))
+                os.path.basename(str(fname)))
 
         self.__files[fname].SetContentFile(fname)
         self.__files[fname].Upload()

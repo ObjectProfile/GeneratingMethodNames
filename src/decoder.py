@@ -1,4 +1,4 @@
-from train.constants import MAX_LENGTH
+from constants import MAX_LENGTH
 
 import torch
 import torch.nn as nn
@@ -14,7 +14,7 @@ class DecoderRNN(nn.Module):
         self.out = nn.Linear(hidden_size, output_size)
         self.softmax = nn.Softmax(dim=1)
 
-    
+
     def forward(self, input, hidden):
         output = self.embedding(input).view(1, 1, -1)
         output = torch.relu(output)

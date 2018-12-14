@@ -1,8 +1,5 @@
 client_secrets.json
-data/*
-!data/*.md
-models/*
-!models/*.md
+._*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -1,14 +1,13 @@
-import os
 import pickle
 
 import torch
 
-from train import Seq2Seq
-from train import constants
+from seq2seq import Seq2Seq
+import constants
 
-SOURCE_LANG_PATH = os.path.join(constants.DATA_DIR, 'input_lang.pkl')
-TARGET_LANG_PATH = os.path.join(constants.DATA_DIR, 'output_lang.pkl')
-TRAINED_MODEL_PATH = os.path.join(constants.MODELS_DIR, 'trained_model.pt')
+SOURCE_LANG_PATH = constants.LANGS_DIR / 'input_lang.pkl'
+TARGET_LANG_PATH = constants.LANGS_DIR / 'output_lang.pkl'
+TRAINED_MODEL_PATH = constants.MODELS_DIR / 'trained_model.pt'
 
 
 class NameGenerator:
@@ -17,18 +16,18 @@ class NameGenerator:
         self.__target_lang = self.__load_lang(TARGET_LANG_PATH)
         self.__model = self.__build_model()
 
-        trained_model_state = torch.load(TRAINED_MODEL_PATH)
+        trained_model_state = torch.load(str(TRAINED_MODEL_PATH))
         self.__model.load_state_dict(trained_model_state)
 
 
-    def get_name_for(self, method_source):
+    def get_name_and_attention_for(self, method_source):
         input_tensor = self.__sentence_as_tensor(method_source)
-        output_tensor = self.__model(input_tensor)
-        return self.__tensor_as_name(output_tensor)
+        output_tensor, attention = self.__model(input_tensor, return_attention=True)
+        return self.__tensor_as_name(output_tensor), attention
 
 
     def __load_lang(self, file_path):
-        with open(file_path, 'rb') as f:
+        with open(str(file_path), 'rb') as f:
             lang = pickle.load(f)
 
         return lang
@@ -43,19 +42,19 @@ class NameGenerator:
             teacher_forcing_ratio=constants.TEACHER_FORCING_RATIO,
             device=constants.DEVICE)
 
-    
+
     def __indexes_from_tokens(self, tokens):
         int_tokens = []
-        
+
         for token in tokens:
             try:
                 int_tokens.append(self.__source_lang.word2index[token])
             except KeyError:
                 pass
-        
+
         return int_tokens
 
-    
+
     def __tokens_from_indexes(self, indexes):
         return [self.__target_lang.index2word[index] for index in indexes]
 

@@ -1,9 +1,8 @@
-from train import constants
-from train.encoder import EncoderRNN
-from train.decoder import AttnDecoderRNN
-from train.util import time_str
+import constants
+from encoder import EncoderRNN
+from decoder import AttnDecoderRNN
+from util import time_str
 
-import os
 import time
 import random
 from collections import OrderedDict
@@ -106,9 +105,9 @@ class Seq2Seq(nn.Module):
             if iter % log_every == 0:
                 train_time_elapsed = time.time() - start_train_time
 
-                torch.save(self.state_dict(), os.path.join(constants.MODELS_DIR, 'trained_model.pt'))
+                torch.save(self.state_dict(), str(constants.MODELS_DIR / 'trained_model.pt'))
 
-                with open(os.path.join(constants.LOGS_DIR, 'iters_completed.txt'), 'w') as f:
+                with open(str(constants.STATE_DIR / 'iters_completed.txt'), 'w') as f:
                     f.write(str(iter))
 
                 start_eval_time = time.time()
@@ -137,7 +136,7 @@ class Seq2Seq(nn.Module):
                     ("Total training time", time_str(total_time_elapsed))
                 ])
 
-                logger.write_training_log(log_dict, os.path.join(constants.LOGS_DIR, 'train-log.txt'))
+                logger.write_training_log(log_dict, str(constants.LOGS_DIR / 'train-log.txt'))
 
                 logger.plot_and_save_histories(
                     avg_loss_history,
@@ -146,7 +145,7 @@ class Seq2Seq(nn.Module):
                     avg_f1_history,
                     num_unique_names_history)
 
-                logger.save_dataframe(names, os.path.join(constants.LOGS_DIR, 'valid_names.csv'))
+                logger.save_dataframe(names, str(constants.RESULTS_DIR / 'valid_names.csv'))
 
                 histories = pd.DataFrame(OrderedDict([
                     ('Loss', avg_loss_history),
@@ -156,7 +155,7 @@ class Seq2Seq(nn.Module):
                     ('num_names', num_unique_names_history)
                 ]))
 
-                logger.save_dataframe(histories, os.path.join(constants.LOGS_DIR, 'histories.csv'))
+                logger.save_dataframe(histories, str(constants.RESULTS_DIR / 'histories.csv'))
 
                 # Reseting counters
                 total_loss = 0
@@ -164,7 +163,7 @@ class Seq2Seq(nn.Module):
                 start_train_time = time.time()
 
 
-    def forward(self, input_tensor, max_length=constants.MAX_LENGTH):
+    def forward(self, input_tensor, max_length=constants.MAX_LENGTH, return_attention=False):
         encoder_hidden = self.encoder.initHidden()
 
         input_length = input_tensor.size(0)
@@ -191,4 +190,7 @@ class Seq2Seq(nn.Module):
 
             decoder_input = topi.squeeze().detach()
 
-        return decoded_words
+        if return_attention:
+            return decoded_words, decoder_attention.tolist()[0]
+        else:
+            return decoded_words

@@ -1,5 +1,5 @@
-from train.metrics import confusion_dataframe, bleu, rouge, f1_score
-from train.constants import SOS_TOKEN, EOS_TOKEN
+from metrics import confusion_dataframe, bleu, rouge, f1_score
+from constants import SOS_TOKEN, EOS_TOKEN
 
 from collections import OrderedDict
 
@@ -31,7 +31,7 @@ class Evaluator:
             x.append(input_tensor)
             y_true.append(training_pair[1])
             y_pred.append(output_tensor)
-        
+
         # Convert numbers to words and remove SOS and EOS tokens
         x = [[self.input_lang.index2word[index.item()]
                 for index in sent
@@ -47,7 +47,7 @@ class Evaluator:
                 for index in sent
                 if index not in [SOS_TOKEN, EOS_TOKEN]
             ] for sent in y_pred]
-        
+
         names = pd.DataFrame(OrderedDict([
             ('Source', [' '.join(sent) for sent in x]),
             ('True Name', [' '.join(sent) for sent in y_true]),
@@ -56,10 +56,10 @@ class Evaluator:
             ('ROUGE', [rouge(y_true[i], y_pred[i]) for i in range(len(y_true))]),
             ('F1', [f1_score(y_true[i], y_pred[i]) for i in range(len(y_true))])
         ]))
-        
+
         return names
 
-    
+
     def __build_confusion_dataframe(self, names):
         return confusion_dataframe(
             names['True Name'],

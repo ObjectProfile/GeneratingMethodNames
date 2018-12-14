@@ -1,4 +1,4 @@
-from train import constants
+import constants
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -33,7 +33,7 @@ def plot_confusion_dataframe(df, nrows=5, with_percents=False, total=None):
     return fig
 
 
-def plot_history(history, color, title, ylabel, xlabel='Iteration'): 
+def plot_history(history, color, title, ylabel, xlabel='Iteration'):
     fig, ax = plt.subplots()
     x = constants.LOG_EVERY * np.arange(len(history))
     ax.plot(x, history, color)

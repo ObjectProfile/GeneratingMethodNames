@@ -1,4 +1,4 @@
-from train.constants import EOS_TOKEN, MAX_LENGTH, DEVICE
+from constants import EOS_TOKEN, MAX_LENGTH, DEVICE
 
 import numpy as np
 
@@ -52,23 +52,23 @@ class TensorBuilder:
 def read_langs(lang1, lang2, corpora):
     input_lang = Lang(lang1)
     output_lang = Lang(lang2)
-    
+
     input_sentences = []
     target_sentences = []
 
     for i, row in corpora.iterrows():
         input_sent = row[lang1]
         target_sent = row[lang2]
-        
+
         input_tokenized = str(input_sent).split()
         target_tokenized = str(target_sent).split()
 
         if len(input_tokenized) > MAX_LENGTH and len(input_tokenized) > 0 and len(target_tokenized) > 0:
             continue
-        
+
         input_sentences.append(input_tokenized)
         target_sentences.append(target_tokenized)
-        
+
         output_lang.addSentence(target_tokenized)
         input_lang.addSentence(input_tokenized)
 
