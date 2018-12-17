@@ -2,8 +2,11 @@ import constants
 
 # TODO: Move elsewhere
 from metrics import confusion_dataframe
-from visualizations import plot_confusion_dataframe, plot_history, COLORS
 from exceptions import DriveSecretsNotFound
+
+from visualizations import (
+    plot_loss, plot_bleu, plot_rouge, plot_f1,
+    plot_all_scores, plot_num_names)
 
 import os
 import datetime
@@ -17,6 +20,73 @@ from pydrive.settings import InvalidConfigError
 import numpy as np
 import matplotlib.pyplot as plt
 
+__all__ = [
+    'log', 'save_dataframe', 'save_image', 'save_pickle',
+    'use_default_logger', 'use_drive_logger', 'is_drive_logger',
+    'write_training_log', 'plot_and_save_histories'
+]
+
+__logger = None
+
+
+def use_default_logger():
+    global __logger
+    __logger = DefaultLogger()
+
+
+def use_drive_logger():
+    global __logger
+    __logger = DriveLogger(constants.DRIVE_DIR)
+
+
+# TODO: Remove this. Move the logic that asks for the type of loger to this file
+def is_drive_logger():
+    return type(__logger) == DriveLogger
+
+
+def log(string, fname=constants.LOG_FILE, append=True):
+    __logger.log(string, fname, append)
+
+
+def save_dataframe(df, fname):
+    __logger.save_dataframe(df, fname)
+
+
+def save_image(fig, fname, update=True):
+    __logger.save_image(fig, fname, update)
+
+
+def save_pickle(obj, fname):
+    __logger.save_pickle(obj, fname)
+
+
+def write_training_log(log_dict, fname):
+    log_template = ": {}\n".join(log_dict.keys()) + ": {}"
+    log_string = log_template.format(*log_dict.values())
+
+    log(log_string, fname=fname, append=True)
+
+
+def plot_and_save_histories(loss_history, bleu_history, rouge_history,
+                            f1_history, num_unique_names_history):
+    fig = plot_loss(loss_history)
+    save_image(fig, constants.LOSS_IMG_FILE)
+
+    fig = plot_bleu(bleu_history)
+    save_image(fig, constants.BLEU_IMG_FILE)
+
+    fig = plot_rouge(rouge_history)
+    save_image(fig, constants.ROUGE_IMG_FILE)
+
+    fig = plot_f1(f1_history)
+    save_image(fig, constants.F1_IMG_FILE)
+
+    fig = plot_all_scores(bleu_history, rouge_history, f1_history)
+    save_image(fig, constants.ALL_SCORES_IMG_FILE)
+
+    fig = plot_num_names(num_unique_names_history)
+    save_image(fig, constants.NUM_NAMES_IMG_FILE)
+
 
 class DefaultLogger:
     def __init__(self):
@@ -29,8 +99,10 @@ class DefaultLogger:
         with open(str(fname), 'a') as f:
             f.write(string)
 
+        print(string)
 
-    def log(self, string, fname=constants.LOGS_DIR / 'log.txt', append=True):
+
+    def log(self, string, fname, append):
         string = '[{}]\n{}\n\n'.format(datetime.datetime.now(), string)
         self.write_log(string, fname, append)
 
@@ -40,7 +112,7 @@ class DefaultLogger:
         self.on_file_saved(str(fname))
 
 
-    def save_image(self, fig, fname, update=True):
+    def save_image(self, fig, fname, update):
         fig.savefig(fname)
         plt.close(fig)
         self.on_file_saved(str(fname))
@@ -56,67 +128,6 @@ class DefaultLogger:
     def on_file_saved(self, fname):
         """DefaultLogger foes nothing, DriveLogger uploads file to Drive"""
         pass
-
-
-    def write_training_log(self, log_dict, fname):
-        log_template = ": {}\n".join(log_dict.keys()) + ": {}"
-        log_string = log_template.format(*log_dict.values())
-
-        self.log(log_string, fname=fname, append=True)
-
-    # TODO: Refactor
-    def plot_and_save_histories(self, loss_history, bleu_history, rouge_history, f1_history, num_unique_names_history):
-        fig = plot_history(
-            history = loss_history,
-            color = COLORS['red'],
-            title = 'Average Loss',
-            ylabel = 'Loss')
-
-        self.save_image(fig, str(constants.IMG_DIR / 'loss.png'))
-
-        fig = plot_history(
-            history = bleu_history,
-            color = COLORS['blue'],
-            title = 'Average BLEU',
-            ylabel = 'BLEU')
-
-        self.save_image(fig, str(constants.IMG_DIR / 'bleu.png'))
-
-        fig = plot_history(
-            history = rouge_history,
-            color = COLORS['green'],
-            title = 'Average ROUGE',
-            ylabel = 'ROUGE')
-
-        self.save_image(fig, str(constants.IMG_DIR / 'rouge.png'))
-
-        fig = plot_history(
-            history = f1_history,
-            color = COLORS['red'],
-            title = 'Average F1 score',
-            ylabel = 'F1 score')
-
-        self.save_image(fig, str(constants.IMG_DIR / 'f1.png'))
-
-        # TODO: Move to visualizations.py
-        fig, ax = plt.subplots()
-        x = constants.LOG_EVERY * np.arange(len(bleu_history))
-        ax.plot(x, bleu_history, COLORS['blue'])
-        ax.plot(x, rouge_history, COLORS['green'])
-        ax.plot(x, f1_history, COLORS['red'])
-        ax.set_title('Average BLEU, ROUGE, and F1 hiestories')
-        ax.set_xlabel('Iteration')
-        ax.set_ylabel('')
-
-        self.save_image(fig, str(constants.IMG_DIR / 'bleu_rouge_f1.png'))
-
-        fig = plot_history(
-            history = num_unique_names_history,
-            color = COLORS['yellow'],
-            title = 'Number of unique names',
-            ylabel = '# names')
-
-        self.save_image(fig, str(constants.IMG_DIR / 'num_names.png'))
 
 
     def remove_old_file_on_first_log(self, fname):
@@ -235,3 +246,9 @@ class DriveLogger(DefaultLogger):
 
         self.__files[fname].SetContentFile(fname)
         self.__files[fname].Upload()
+
+
+if constants.WRITE_LOGS_TO_GOOGLE_DRIVE:
+    use_drive_logger()
+else:
+    use_default_logger()

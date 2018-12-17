@@ -2,6 +2,7 @@ import constants
 from encoder import EncoderRNN
 from decoder import AttnDecoderRNN
 from util import time_str
+from logger import write_training_log, save_dataframe, plot_and_save_histories
 
 import time
 import random
@@ -81,12 +82,11 @@ class Seq2Seq(nn.Module):
         return loss.item() / target_length
 
 
-    def trainIters(self, pairs, first_iter, last_iter, logger, evaluator, log_every=100):
+    def trainIters(self, pairs, first_iter, last_iter, evaluator):
         start_total_time = time.time()
-        start_epoch_time = time.time() # Reset every log_every
-        start_train_time = time.time() # Reset every log_every
-
-        total_loss = 0                 # Reset every log_every
+        start_epoch_time = time.time() # Reset every LOG_EVERY iterations
+        start_train_time = time.time() # Reset every LOG_EVERY iterations
+        total_loss = 0                 # Reset every LOG_EVERY iterations
         avg_loss_history = []
         avg_bleu_history = []
         avg_rouge_history = []
@@ -102,19 +102,19 @@ class Seq2Seq(nn.Module):
             loss = self.train(input_tensor, target_tensor)
             total_loss += loss
 
-            if iter % log_every == 0:
+            if iter % constants.LOG_EVERY == 0:
                 train_time_elapsed = time.time() - start_train_time
 
-                torch.save(self.state_dict(), str(constants.MODELS_DIR / 'trained_model.pt'))
+                torch.save(self.state_dict(), constants.TRAINED_MODEL_FILE)
 
-                with open(str(constants.STATE_DIR / 'iters_completed.txt'), 'w') as f:
+                with open(constants.ITERS_COMPLETED_FILE, 'w') as f:
                     f.write(str(iter))
 
                 start_eval_time = time.time()
                 names = evaluator.evaluate(self)
                 eval_time_elapsed = time.time() - start_eval_time
 
-                avg_loss_history.append(total_loss / log_every)
+                avg_loss_history.append(total_loss / constants.LOG_EVERY)
                 avg_bleu_history.append(names['BLEU'].mean())
                 avg_rouge_history.append(names['ROUGE'].mean())
                 avg_f1_history.append(names['F1'].mean())
@@ -136,16 +136,16 @@ class Seq2Seq(nn.Module):
                     ("Total training time", time_str(total_time_elapsed))
                 ])
 
-                logger.write_training_log(log_dict, str(constants.LOGS_DIR / 'train-log.txt'))
+                write_training_log(log_dict, constants.TRAIN_LOG_FILE)
 
-                logger.plot_and_save_histories(
+                plot_and_save_histories(
                     avg_loss_history,
                     avg_bleu_history,
                     avg_rouge_history,
                     avg_f1_history,
                     num_unique_names_history)
 
-                logger.save_dataframe(names, str(constants.RESULTS_DIR / 'valid_names.csv'))
+                save_dataframe(names, constants.VALIDATION_NAMES_FILE)
 
                 histories = pd.DataFrame(OrderedDict([
                     ('Loss', avg_loss_history),
@@ -155,7 +155,7 @@ class Seq2Seq(nn.Module):
                     ('num_names', num_unique_names_history)
                 ]))
 
-                logger.save_dataframe(histories, str(constants.RESULTS_DIR / 'histories.csv'))
+                save_dataframe(histories, constants.HISTORIES_FILE)
 
                 # Reseting counters
                 total_loss = 0
@@ -176,21 +176,24 @@ class Seq2Seq(nn.Module):
 
         decoder_input = torch.tensor([[constants.SOS_TOKEN]], device=self.device)
         decoder_hidden = encoder_hidden
+
         decoded_words = []
+        attention_vectors = []
 
         for di in range(max_length):
             decoder_output, decoder_hidden, decoder_attention = self.decoder(
                 decoder_input, decoder_hidden, encoder_outputs)
             topv, topi = decoder_output.data.topk(1)
-            if topi.item() == constants.EOS_TOKEN:
-                decoded_words.append(constants.EOS_TOKEN)
+
+            decoded_words.append(topi.item())
+            attention_vectors.append(decoder_attention.tolist()[0])
+
+            if decoded_words[-1] == constants.EOS_TOKEN:
                 break
-            else:
-                decoded_words.append(topi.item())
 
             decoder_input = topi.squeeze().detach()
 
         if return_attention:
-            return decoded_words, decoder_attention.tolist()[0]
+            return decoded_words, attention_vectors
         else:
             return decoded_words
