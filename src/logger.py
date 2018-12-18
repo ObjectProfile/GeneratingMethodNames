@@ -67,24 +67,26 @@ def write_training_log(log_dict, fname):
     log(log_string, fname=fname, append=True)
 
 
-def plot_and_save_histories(loss_history, bleu_history, rouge_history,
-                            f1_history, num_unique_names_history):
-    fig = plot_loss(loss_history)
+def plot_and_save_histories(histories):
+    fig = plot_loss(histories['Loss'])
     save_image(fig, constants.LOSS_IMG_FILE)
 
-    fig = plot_bleu(bleu_history)
+    fig = plot_bleu(histories['BLEU'])
     save_image(fig, constants.BLEU_IMG_FILE)
 
-    fig = plot_rouge(rouge_history)
+    fig = plot_rouge(histories['ROUGE'])
     save_image(fig, constants.ROUGE_IMG_FILE)
 
-    fig = plot_f1(f1_history)
+    fig = plot_f1(histories['F1'])
     save_image(fig, constants.F1_IMG_FILE)
 
-    fig = plot_all_scores(bleu_history, rouge_history, f1_history)
+    fig = plot_all_scores(
+        histories['BLEU'],
+        histories['ROUGE'],
+        histories['F1'])
     save_image(fig, constants.ALL_SCORES_IMG_FILE)
 
-    fig = plot_num_names(num_unique_names_history)
+    fig = plot_num_names(histories['num_names'])
     save_image(fig, constants.NUM_NAMES_IMG_FILE)
 
 

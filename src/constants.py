@@ -11,19 +11,19 @@ EOS_TOKEN = 1
 UNK_TOKEN = 2
 PAD_TOKEN = 3
 
-MAX_LENGTH = 50
+MAX_LENGTH = 100
 DROP_DUPLICATES = True
 
 TRAIN_PROP = 0.7
 VALID_PROP = 0.1
 TEST_PROP = 0.2
 
-HIDDEN_SIZE = 256
+HIDDEN_SIZE = 512
 LEARNING_RATE = 0.01
 TEACHER_FORCING_RATIO = 0.5
 
 NUM_ITER = 100000
-LOG_EVERY = 1000
+LOG_EVERY = 2000
 
 # Colors used in visualizations
 COLOR_GREEN = sns.xkcd_rgb["faded green"]
@@ -32,7 +32,7 @@ COLOR_BLUE = sns.xkcd_rgb["medium blue"]
 COLOR_YELLOW = sns.xkcd_rgb["ochre"]
 
 # Parent to all other diretories
-BASE_DIR = Path('/Volumes/MyPassport/Data/NameGen_test/')
+BASE_DIR = Path('/Volumes/MyPassport/Data/NameGen/')
 
 DATASET_FILE          = str(BASE_DIR / 'Data' / 'methods_tokenized.csv')
 TRAIN_PAIRS_FILE      = str(BASE_DIR / 'State' / 'Train-Valid-Test' / 'train_pairs.pkl')

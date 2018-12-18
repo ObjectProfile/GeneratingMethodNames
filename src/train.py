@@ -4,6 +4,7 @@ from preprocessing import read_langs, train_validation_test_split, TensorBuilder
 from evaluator import Evaluator
 from logger import log, save_pickle, save_dataframe, use_default_logger, is_drive_logger
 
+import os
 import time
 import math
 from collections import OrderedDict
@@ -12,6 +13,54 @@ import numpy as np
 import pandas as pd
 
 import torch
+
+
+def load_iters_completed():
+    """Reads the number of completed iteartions from file"""
+    try:
+        with open(constants.ITERS_COMPLETED_FILE, 'r') as f:
+            iters_completed = int(f.read())
+    except Exception as e:
+        log("Error: " + str(e))
+        log("Can't read the number of completed iterations. Starting from 0")
+        iters_completed = 0
+
+    log("Starting from iteration {}\n{} more iterations to go ({:.1f}%)".format(
+        iters_completed + 1,
+        constants.NUM_ITER - iters_completed,
+        (constants.NUM_ITER - iters_completed) / constants.NUM_ITER * 100))
+
+    return iters_completed
+
+
+def initialize_empty_model(input_lang, output_lang):
+    """Creates an empty seq2seq model."""
+    log('Initializing the model')
+
+    model = Seq2Seq(
+        input_size=input_lang.n_words,
+        output_size=output_lang.n_words,
+        hidden_size=constants.HIDDEN_SIZE,
+        learning_rate=constants.LEARNING_RATE,
+        teacher_forcing_ratio=constants.TEACHER_FORCING_RATIO,
+        device=constants.DEVICE)
+
+    log(str(model))
+    return model
+
+
+def load_last_trained_model(input_lang, output_lang):
+    """Creates a seq2seq model and tries to load the last saved state into it."""
+    model = initialize_empty_model(input_lang, output_lang)
+
+    try:
+        log('Loading the state of a last trained model')
+        model.load_state_dict(torch.load(constants.TRAINED_MODEL_FILE))
+    except Exception as e:
+        log("Error: " + str(e))
+        log("Can't load the state. Starting from scratch")
+
+    return model
 
 
 def start_training():
@@ -65,22 +114,16 @@ def start_training():
         valid_pairs = [tensor_builder.tensorsFromPair(pair) for pair in valid_pairs]
         test_pairs = [tensor_builder.tensorsFromPair(pair) for pair in test_pairs]
 
-        log('Building the model')
-
-        model = Seq2Seq(
-            input_size=input_lang.n_words,
-            output_size=output_lang.n_words,
-            hidden_size=constants.HIDDEN_SIZE,
-            learning_rate=constants.LEARNING_RATE,
-            teacher_forcing_ratio=constants.TEACHER_FORCING_RATIO,
-            device=constants.DEVICE)
-
-        log(str(model))
-
         log('Initializing evaluators')
+        valid_evaluator = Evaluator(valid_pairs, input_lang, output_lang)
+        test_evaluator = Evaluator(test_pairs, input_lang, output_lang)
 
-        evaluator = Evaluator(valid_pairs, input_lang, output_lang)
-        test_set_evaluator = Evaluator(test_pairs, input_lang, output_lang)
+        iters_completed = load_iters_completed()
+
+        if iters_completed > 0:
+            model = load_last_trained_model(input_lang, output_lang)
+        else:
+            model = initialize_empty_model(input_lang, output_lang)
 
     except Exception as e:
         # Log the error message and raise it again so see more info
@@ -89,12 +132,11 @@ def start_training():
 
     successful = False
     restarting_attempts = 10
-    iters_completed = 0
 
     while not successful:
         try:
             log('Training the model')
-            model.trainIters(train_pairs, iters_completed, constants.NUM_ITER, evaluator)
+            model.trainIters(train_pairs, iters_completed + 1, constants.NUM_ITER, valid_evaluator)
 
             log('Saving the model')
             torch.save(model.state_dict(), constants.TRAINED_MODEL_FILE)
@@ -102,8 +144,11 @@ def start_training():
             successful = True
 
             log('Evaluating on test set')
-            names = test_set_evaluator.evaluate(model)
+            names = test_evaluator.evaluate(model)
             save_dataframe(names, constants.TEST_NAMES_FILE)
+
+            log('Removing the iters_completed file')
+            os.remove(constants.ITERS_COMPLETED_FILE)
 
             log('Done')
 
@@ -123,35 +168,15 @@ def start_training():
 
                     log("Error during training: " + str(e))
 
-                    try:
-                        with open(constants.ITERS_COMPLETED_FILE, 'r') as f:
-                            iters_completed = int(f.read())
-                    except Exception as e:
-                        log("Error: " + str(e))
-                        log("Can't read the number of completed iterations. Starting from 0")
-
-                    log("Restarting from iteration {}\n{} more iterations to go ({:.1f}%)".format(
-                        iters_completed + 1,
-                        constants.NUM_ITER - iters_completed,
-                        (constants.NUM_ITER - iters_completed) / constants.NUM_ITER * 100))
-
-                    try:
-                        log('Loading the last trained model')
-                        model.load_state_dict(torch.load(constants.TRAINED_MODEL_FILE))
-                    except Exception as e:
-                        log("Error: " + str(e))
-                        log("Can't load the last trained model. Starting from scratch")
-
-                        model = Seq2Seq(
-                            input_size=input_lang.n_words,
-                            output_size=output_lang.n_words,
-                            hidden_size=constants.HIDDEN_SIZE,
-                            learning_rate=constants.LEARNING_RATE,
-                            teacher_forcing_ratio=constants.TEACHER_FORCING_RATIO,
-                            device=constants.DEVICE)
+                    iters_completed = load_iters_completed()
+                    model = load_last_trained_model(input_lang, output_lang)
 
                     restarted = True
 
                 except Exception as e:
                     use_default_logger()
                     print("Switched to default logger")
+
+            if restarting_attempts < 1:
+                log("Failed to restart")
+                break

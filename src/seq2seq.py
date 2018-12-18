@@ -2,7 +2,7 @@ import constants
 from encoder import EncoderRNN
 from decoder import AttnDecoderRNN
 from util import time_str
-from logger import write_training_log, save_dataframe, plot_and_save_histories
+from logger import log, write_training_log, save_dataframe, plot_and_save_histories
 
 import time
 import random
@@ -87,11 +87,18 @@ class Seq2Seq(nn.Module):
         start_epoch_time = time.time() # Reset every LOG_EVERY iterations
         start_train_time = time.time() # Reset every LOG_EVERY iterations
         total_loss = 0                 # Reset every LOG_EVERY iterations
-        avg_loss_history = []
-        avg_bleu_history = []
-        avg_rouge_history = []
-        avg_f1_history = []
-        num_unique_names_history = []
+
+        if first_iter > 1:
+            histories = pd.read_csv(constants.HISTORIES_FILE, sep='\t')
+        else:
+            histories = pd.DataFrame(
+                columns=['Loss', 'BLEU', 'ROUGE', 'F1', 'num_names'])
+
+        avg_loss_history = histories['Loss'].tolist()
+        avg_bleu_history = histories['BLEU'].tolist()
+        avg_rouge_history = histories['ROUGE'].tolist()
+        avg_f1_history = histories['F1'].tolist()
+        num_unique_names_history = histories['num_names'].tolist()
 
 
         for iter in range(first_iter, last_iter + 1):
@@ -114,22 +121,26 @@ class Seq2Seq(nn.Module):
                 names = evaluator.evaluate(self)
                 eval_time_elapsed = time.time() - start_eval_time
 
-                avg_loss_history.append(total_loss / constants.LOG_EVERY)
-                avg_bleu_history.append(names['BLEU'].mean())
-                avg_rouge_history.append(names['ROUGE'].mean())
-                avg_f1_history.append(names['F1'].mean())
-                num_unique_names_history.append(len(names['Our Name'].unique()))
+                histories.append({
+                    'Loss': total_loss / constants.LOG_EVERY,
+                    'BLEU': names['BLEU'].mean(),
+                    'ROUGE': names['ROUGE'].mean(),
+                    'F1': names['F1'].mean(),
+                    'num_names': len(names['Our Name'].unique())
+                }, ignore_index=True)
 
                 epoch_time_elapsed = time.time() - start_epoch_time
                 total_time_elapsed = time.time() - start_total_time
 
+                histories_last_row = histories.iloc[-1]
+
                 log_dict = OrderedDict([
                     ("Iteration",  '{}/{} ({:.1f}%)'.format(iter, last_iter, iter / last_iter * 100)),
-                    ("Average loss", avg_loss_history[-1]),
-                    ("Average BLEU", avg_bleu_history[-1]),
-                    ("Average ROUGE", avg_rouge_history[-1]),
-                    ("Average F1", avg_f1_history[-1]),
-                    ("Unique names", num_unique_names_history[-1]),
+                    ("Average loss", histories_last_row['Loss']),
+                    ("Average BLEU", histories_last_row['BLEU']),
+                    ("Average ROUGE", histories_last_row['ROUGE']),
+                    ("Average F1", histories_last_row['F1']),
+                    ("Unique names", histories_last_row['num_names']),
                     ("Epoch time", time_str(epoch_time_elapsed)),
                     ("Training time", time_str(train_time_elapsed)),
                     ("Evaluation time", time_str(eval_time_elapsed)),
@@ -137,24 +148,8 @@ class Seq2Seq(nn.Module):
                 ])
 
                 write_training_log(log_dict, constants.TRAIN_LOG_FILE)
-
-                plot_and_save_histories(
-                    avg_loss_history,
-                    avg_bleu_history,
-                    avg_rouge_history,
-                    avg_f1_history,
-                    num_unique_names_history)
-
+                plot_and_save_histories(histories)
                 save_dataframe(names, constants.VALIDATION_NAMES_FILE)
-
-                histories = pd.DataFrame(OrderedDict([
-                    ('Loss', avg_loss_history),
-                    ('BLEU', avg_bleu_history),
-                    ('ROUGE', avg_rouge_history),
-                    ('F1', avg_f1_history),
-                    ('num_names', num_unique_names_history)
-                ]))
-
                 save_dataframe(histories, constants.HISTORIES_FILE)
 
                 # Reseting counters
