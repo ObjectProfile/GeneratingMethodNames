@@ -1,97 +1,127 @@
-from constants import EOS_TOKEN, MAX_LENGTH, DEVICE
+import constants
+from logger import save_dataframe, read_dataframe
 
 import numpy as np
+import pandas as pd
 
 import torch
 
 
-class Lang:
-    def __init__(self, name):
-        self.name = name
-        self.word2index = {}
+class Vocabulary:
+    def __init__(self):
         self.word2count = {}
-        self.index2word = {0: "SOS", 1: "EOS"}
-        self.n_words = 2  # Count SOS and EOS
+        self.word2index = {}
+        # TODO: Take these values from constants
+        self.index2word = {0: "<sos>", 1: "<eos>", 2: "<unk>"}
+        self.__n_words = len(self.index2word)
 
-    def addSentence(self, sentence):
-        for word in sentence:
-            self.addWord(word)
 
-    def addWord(self, word):
+    def __len__(self):
+        return self.__n_words
+
+
+    def collectWordsFrom(self, sentences):
+        for sentence in sentences:
+            for word in sentence:
+                self.__addWord(word)
+
+
+    def save(self, fname):
+        df = pd.DataFrame(columns=['word', 'index', 'count'])
+        df['word'] = list(self.word2index.keys())
+        df['index'] = df['word'].apply(lambda word: self.word2index[word])
+        df['count'] = df['word'].apply(lambda word: self.word2count[word])
+        save_dataframe(df, fname)
+
+
+    def load(self, fname):
+        df = read_dataframe(fname)
+        self.word2count = dict(zip(df['word'], df['count']))
+        self.word2index = dict(zip(df['word'], df['index']))
+
+        new_index2word = dict(zip(df['index'], df['word']))
+        self.index2word = {**new_index2word, **self.index2word}
+
+        self.__n_words = len(self.index2word)
+
+
+    def __addWord(self, word):
         if word not in self.word2index:
-            self.word2index[word] = self.n_words
+            self.word2index[word] = self.__n_words
             self.word2count[word] = 1
-            self.index2word[self.n_words] = word
-            self.n_words += 1
+            self.index2word[self.__n_words] = word
+            self.__n_words += 1
         else:
             self.word2count[word] += 1
 
 
-class TensorBuilder:
-    def __init__(self, input_lang, output_lang):
-        self.input_lang = input_lang
-        self.output_lang = output_lang
+class NumberEncoder:
+    """Encodes words as numbers and decodes numbers as words
+    using a given vocabulary"""
+    def __init__(self, vocabulary):
+        self.vocabulary = vocabulary
 
 
-    def indexesFromSentence(self, lang, sentence):
-        return [lang.word2index[word] for word in sentence]
+    def encodeSentence(self, sentence):
+        numbers = [self.__encodeWord(word) for word in sentence]
+        numbers.append(constants.EOS_TOKEN)
+        return numbers
 
 
-    def tensorFromSentence(self, lang, sentence):
-        indexes = self.indexesFromSentence(lang, sentence)
-        indexes.append(EOS_TOKEN)
-        return torch.tensor(indexes, dtype=torch.long, device=DEVICE).view(-1, 1)
+    def decodeSentence(self, numbers):
+        # Remove EOS_TOKEN
+        numbers = numbers[:-1]
+        return [self.__decodeWord(number) for number in numbers]
 
 
-    def tensorsFromPair(self, pair):
-        input_tensor = self.tensorFromSentence(self.input_lang, pair[0])
-        target_tensor = self.tensorFromSentence(self.output_lang, pair[1])
-        return (input_tensor, target_tensor)
+    def __encodeWord(self, word):
+        if word not in self.vocabulary.word2index.keys():
+            return constants.UNK_TOKEN
+        return self.vocabulary.word2index[word]
 
 
-def read_langs(lang1, lang2, corpora):
-    input_lang = Lang(lang1)
-    output_lang = Lang(lang2)
-
-    input_sentences = []
-    target_sentences = []
-
-    for i, row in corpora.iterrows():
-        input_sent = row[lang1]
-        target_sent = row[lang2]
-
-        input_tokenized = str(input_sent).split()
-        target_tokenized = str(target_sent).split()
-
-        if len(input_tokenized) > MAX_LENGTH and len(input_tokenized) > 0 and len(target_tokenized) > 0:
-            continue
-
-        input_sentences.append(input_tokenized)
-        target_sentences.append(target_tokenized)
-
-        output_lang.addSentence(target_tokenized)
-        input_lang.addSentence(input_tokenized)
-
-    return input_lang, output_lang, list(zip(input_sentences, target_sentences))
+    def __decodeWord(self, number):
+        return self.vocabulary.index2word[number]
 
 
-def train_validation_test_split(data, train_proportion, validation_proportion, test_proportion):
-    if train_proportion + validation_proportion + test_proportion != 1.0:
-        raise ValueError("Train, test, and validation proportions don't sum up to 1.")
+class TensorEncoder:
+    def __init__(self, input_vocab, output_vocab):
+        self.input_num_encoder = NumberEncoder(input_vocab)
+        self.output_num_encoder = NumberEncoder(output_vocab)
 
-    test_size = int(test_proportion * len(data))
-    valid_size = int(validation_proportion * len(data))
-    train_size = int(train_proportion * len(data))
 
-    indices = np.random.permutation(len(data))
+    def encode(self, df, input_column, output_columns):
+        cols = [input_column] + output_columns
 
-    train_idx = indices[:train_size]
-    valid_idx = indices[train_size:(train_size + valid_size)]
-    test_idx = indices[-test_size:]
+        df[input_column] = df[input_column].apply(self.input_num_encoder.encodeSentence)
 
-    data = np.array(data)
-    train_set = data[train_idx]
-    valid_set = data[valid_idx]
-    test_set = data[test_idx]
+        for col in output_columns:
+            df[col] = df[col].apply(self.output_num_encoder.encodeSentence)
 
-    return train_set, valid_set, test_set
+        for col in cols:
+            df[col] = df[col].apply(self.__list_to_tensor)
+
+        return df
+
+
+    def decode(self, df, input_column, output_columns):
+        cols = [input_column] + output_columns
+
+        for col in cols:
+            if type(df[col].iloc[0]) == torch.Tensor:
+                df[col] = df[col].apply(self.__tensor_to_list)
+
+        df[input_column] = df[input_column].apply(self.input_num_encoder.decodeSentence)
+
+        for col in output_columns:
+            df[col] = df[col].apply(self.output_num_encoder.decodeSentence)
+
+        return df
+
+
+    def __list_to_tensor(self, sentence):
+        return torch.tensor(sentence, dtype=torch.long, device=constants.DEVICE).view(-1, 1)
+
+
+    def __tensor_to_list(self, tensor):
+        return tensor.view(-1).tolist()

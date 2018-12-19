@@ -5,9 +5,9 @@ from util import time_str
 from logger import log, write_training_log, save_dataframe, plot_and_save_histories
 
 import time
-import random
 from collections import OrderedDict
 
+import numpy as np
 import pandas as pd
 
 import torch
@@ -52,7 +52,7 @@ class Seq2Seq(nn.Module):
         decoder_input = torch.tensor([[constants.SOS_TOKEN]], device=self.device)
         decoder_hidden = encoder_hidden
 
-        use_teacher_forcing = True if random.random() < self.teacher_forcing_ratio else False
+        use_teacher_forcing = True if np.random.random() < self.teacher_forcing_ratio else False
 
         if use_teacher_forcing:
             # Teacher forcing: feed the target as the next input
@@ -82,65 +82,56 @@ class Seq2Seq(nn.Module):
         return loss.item() / target_length
 
 
-    def trainIters(self, pairs, first_iter, last_iter, evaluator):
-        start_total_time = time.time()
+    def trainIters(self, env, evaluator):
+        start_total_time = time.time() - env.total_training_time
         start_epoch_time = time.time() # Reset every LOG_EVERY iterations
         start_train_time = time.time() # Reset every LOG_EVERY iterations
         total_loss = 0                 # Reset every LOG_EVERY iterations
 
-        if first_iter > 1:
-            histories = pd.read_csv(constants.HISTORIES_FILE, sep='\t')
-        else:
-            histories = pd.DataFrame(
-                columns=['Loss', 'BLEU', 'ROUGE', 'F1', 'num_names'])
-
-        avg_loss_history = histories['Loss'].tolist()
-        avg_bleu_history = histories['BLEU'].tolist()
-        avg_rouge_history = histories['ROUGE'].tolist()
-        avg_f1_history = histories['F1'].tolist()
-        num_unique_names_history = histories['num_names'].tolist()
-
-
-        for iter in range(first_iter, last_iter + 1):
-            training_pair = random.choice(pairs)
-            input_tensor = training_pair[0]
-            target_tensor = training_pair[1]
+        for iter in range(env.iters_completed + 1, constants.NUM_ITER + 1):
+            row = env.train_methods.iloc[np.random.randint(len(env.train_methods))]
+            input_tensor = row['source']
+            target_tensor = row['name']
 
             loss = self.train(input_tensor, target_tensor)
             total_loss += loss
 
             if iter % constants.LOG_EVERY == 0:
+                log('Completed {} iterations'.format(iter))
+
                 train_time_elapsed = time.time() - start_train_time
 
-                torch.save(self.state_dict(), constants.TRAINED_MODEL_FILE)
-
-                with open(constants.ITERS_COMPLETED_FILE, 'w') as f:
-                    f.write(str(iter))
-
+                log('Evaluating on validation set')
                 start_eval_time = time.time()
+
                 names = evaluator.evaluate(self)
+                # save_dataframe(names, constants.VALIDATION_NAMES_FILE)
+
                 eval_time_elapsed = time.time() - start_eval_time
 
-                histories.append({
+                env.history = env.history.append({
                     'Loss': total_loss / constants.LOG_EVERY,
                     'BLEU': names['BLEU'].mean(),
                     'ROUGE': names['ROUGE'].mean(),
                     'F1': names['F1'].mean(),
-                    'num_names': len(names['Our Name'].unique())
+                    'num_names': len(names['GeneratedName'].unique())
                 }, ignore_index=True)
 
                 epoch_time_elapsed = time.time() - start_epoch_time
                 total_time_elapsed = time.time() - start_total_time
 
-                histories_last_row = histories.iloc[-1]
+                env.total_training_time = total_time_elapsed
+
+                history_last_row = env.history.iloc[-1]
 
                 log_dict = OrderedDict([
-                    ("Iteration",  '{}/{} ({:.1f}%)'.format(iter, last_iter, iter / last_iter * 100)),
-                    ("Average loss", histories_last_row['Loss']),
-                    ("Average BLEU", histories_last_row['BLEU']),
-                    ("Average ROUGE", histories_last_row['ROUGE']),
-                    ("Average F1", histories_last_row['F1']),
-                    ("Unique names", histories_last_row['num_names']),
+                    ("Iteration",  '{}/{} ({:.1f}%)'.format(
+                        iter, constants.NUM_ITER, iter / constants.NUM_ITER * 100)),
+                    ("Average loss", history_last_row['Loss']),
+                    ("Average BLEU", history_last_row['BLEU']),
+                    ("Average ROUGE", history_last_row['ROUGE']),
+                    ("Average F1", history_last_row['F1']),
+                    ("Unique names", int(history_last_row['num_names'])),
                     ("Epoch time", time_str(epoch_time_elapsed)),
                     ("Training time", time_str(train_time_elapsed)),
                     ("Evaluation time", time_str(eval_time_elapsed)),
@@ -148,9 +139,10 @@ class Seq2Seq(nn.Module):
                 ])
 
                 write_training_log(log_dict, constants.TRAIN_LOG_FILE)
-                plot_and_save_histories(histories)
-                save_dataframe(names, constants.VALIDATION_NAMES_FILE)
-                save_dataframe(histories, constants.HISTORIES_FILE)
+                plot_and_save_histories(env.history)
+
+                env.iters_completed = iter
+                env.save_train()
 
                 # Reseting counters
                 total_loss = 0

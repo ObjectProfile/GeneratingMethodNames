@@ -18,6 +18,7 @@ from pydrive.drive import GoogleDrive
 from pydrive.settings import InvalidConfigError
 
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 
 __all__ = [
@@ -50,6 +51,10 @@ def log(string, fname=constants.LOG_FILE, append=True):
 
 def save_dataframe(df, fname):
     __logger.save_dataframe(df, fname)
+
+
+def read_dataframe(fname):
+    return __logger.read_dataframe(fname)
 
 
 def save_image(fig, fname, update=True):
@@ -110,8 +115,12 @@ class DefaultLogger:
 
 
     def save_dataframe(self, df, fname):
-        df.to_csv(fname, sep='\t')
+        df.to_csv(fname, sep='\t', index=False)
         self.on_file_saved(str(fname))
+
+
+    def read_dataframe(self, fname):
+        return pd.read_csv(fname, sep='\t')
 
 
     def save_image(self, fig, fname, update):
